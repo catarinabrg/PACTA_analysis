@@ -49,6 +49,14 @@ if(has_sb){SB.Values = GetSovBondCoverage()}
 
 #i=94
 
+source("0_graphing_functions.R")
+
+eq_market <<- read_rds('/Users/fionaspuler/Dropbox (2° Investing)/PortCheck/00_Data/07_AnalysisInputs/2019Q4_10042020_2020/0_Indices_equity_portfolio.rda') %>%
+  filter(portfolio_name == eq_market_ref)
+
+cb_market <<- read_rds('/Users/fionaspuler/Dropbox (2° Investing)/PortCheck/00_Data/07_AnalysisInputs/2019Q4_10042020_2020/0_Indices_bonds_portfolio.rda') %>%
+  filter(portfolio_name == cb_market_ref)
+
 i=1
 
 for (i in 1:nrow(report_list)){
@@ -73,11 +81,7 @@ for (i in 1:nrow(report_list)){
   report_handle <- graph_name("00",ParameterFile)
   create_results_folder(project_name,investor_name_select,portfolio_name_select,report_handle)
   
-  ReportFigures(explicit_filenames = F)
-  
- 
-  
-  
+  ReportFigures(explicit_filenames = T)
   
 }
   

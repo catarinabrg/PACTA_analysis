@@ -121,29 +121,24 @@ define_peers <- function(){
   }
 }
 
-define_benchmarks <- function(){
-  
-  if(twodii_internal){
-    
-    # eq_market <<- read_rds(paste0(portcheck_v2_path,"/10_Projects/INDEX_2019/40_Results/Equity_results_portfolio.rda")) %>%
-    #   filter(portfolio_name == eq_market_ref)
-    # cb_market <<- read_rds(paste0(portcheck_v2_path,"/10_Projects/INDEX_2019/40_Results/Bonds_results_portfolio.rda"))%>%
-    #   filter(portfolio_name == cb_market_ref)
-    
-    
-    eq_market <<- read_rds(paste0(portcheck_v2_path,"/10_Projects/0_Indices/40_Results/Equity_results_portfolio.rda")) %>%
-      filter(portfolio_name == eq_market_ref)
-    cb_market <<- read_rds(paste0(portcheck_v2_path,"/10_Projects/0_Indices/40_Results/Bonds_results_portfolio.rda"))%>%
-      filter(portfolio_name == cb_market_ref)
-    # }
-  }else{
-    
-    # Set per project
-    eq_market <<- read_rds(paste0(data_location_ext,"/Fake_Index/Equity_results_portfolio.rda"))
-    
-    cb_market <<- read_rds(paste0(data_location_ext,"/Fake_Index/Bonds_results_portfolio.rda"))
-  }
-}
+# define_benchmarks <- function(){
+#   
+#   if(twodii_internal){
+#     
+#     eq_market <<- read_rds('/Users/fionaspuler/Dropbox (2° Investing)/PortCheck/00_Data/07_AnalysisInputs/2019Q4_10042020_2020/0_Indices_equity_portfolio.rda') %>%
+#       filter(portfolio_name == eq_market_ref)
+# 
+#     cb_market <<- read_rds('/Users/fionaspuler/Dropbox (2° Investing)/PortCheck/00_Data/07_AnalysisInputs/2019Q4_10042020_2020/0_Indices_bonds_portfolio.rda') %>%
+#       filter(portfolio_name == cb_market_ref)
+# 
+#   }else{
+#     
+#     # Set per project
+#     eq_market <<- read_rds(paste0(data_location_ext,"/Fake_Index/Equity_results_portfolio.rda"))
+#     
+#     cb_market <<- read_rds(paste0(data_location_ext,"/Fake_Index/Bonds_results_portfolio.rda"))
+#   }
+# }
 
 results_call <- function(){
   
@@ -153,7 +148,7 @@ results_call <- function(){
   subgroup_overview <<- portfolio_overview[portfolio_overview$investor_name == investor_name_select & portfolio_overview$portfolio_name == portfolio_name_select & portfolio_overview$valid_input == TRUE,]
   
   
-  define_benchmarks()
+
   
   define_peers()
   
@@ -942,6 +937,12 @@ PercentageOfPortfolioAssessed <- function(plotnumber, explicit_filename = ""){
   
   ggsave(plot, filename=graph_name(plotnumber,ParameterFile ,explicit_filename = explicit_filename), bg = "white",height=2.3,width=4.5,dpi=ppi)   #linewidth_in*.9
 }
+
+
+
+
+
+
 
 TechnologyExposure <- function(plotnumber,chart_type,sector_to_plot,plot_year, explicit_filename = ""){ #PlotYr
   

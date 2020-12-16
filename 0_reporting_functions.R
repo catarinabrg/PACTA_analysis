@@ -509,187 +509,187 @@ SectorDataAnalysis <- function(){
 }
 
 
-PercentageOfPortfolioAssessed <- function(plotnumber){
-  
-  
-  over <- SectorDataAnalysis()
-  
-  over <- over[over$financial_sector != "Not Included",]
-  #over$financial_sector <- factor(over$financial_sector, levels = c("Fossil Fuels","Power", "Automotive",
-  #                                                     "Cement & Steel","Aviation & Shipping"), ordered=TRUE)
-  
-  over<- as.data.frame(over)
-  
-  if (data_check(over)){
-    
-    over$financial_sector <- if_else(over$financial_sector == "Cement&Steel","Cement & Steel", over$financial_sector)
-    over <- over %>%  filter(!is.na(financial_sector)) 
-    
-    ## "steelblue" color below should be changed to whatever our Portfolio color is
-    over1<- subset(over, portfolio_name == portfolio_name_select & asset_type %in% c("Equity","Bonds"))
-    
-    over1 <- over1 %>% group_by(investor_name,portfolio_name,asset_type,financial_sector) %>% summarise( ValueUSD = sum(valid_value_usd))
-    
-    
-    over1$asset_type <- gsub("Bonds", BondReference,over1$asset_type)
-    over1$asset_type <- gsub("Equity", "Equity",over1$asset_type)
-    over1$asset_type <- factor(over1$asset_type,levels=c("Equity", BondReference)) 
-    
-    # if(BondReference == "Corporate bond") {
-    over1$asset_type <- dplyr::recode(over1$asset_type,  "Bond" = wrap_labels(BondsTitle, 10), Equity = EquityTitle)   #
-    # } else {
-    # over1$asset_type <- dplyr::recode(over1$asset_type,  "Other Title" = " ", Equity = EquityTitle)  #
-    # }
-    
-    over1$financial_sector <- factor(over1$financial_sector, levels=c("Aviation & Shipping", "Cement & Steel",
-                                                                      "Automotive", "Power","Fossil Fuels"), ordered=TRUE) 
-    over1$financial_sector <- dplyr::recode(over1$financial_sector, 
-                                            'Fossil Fuels' = wrap_labels(S_FossilFuels, 15), 
-                                            "Power" = wrap_labels(S_Power, 15), 
-                                            "Automotive"  = wrap_labels(S_Automotive, 15), #
-                                            'Cement & Steel' = wrap_labels(S_CementSteel, 15), 
-                                            'Aviation & Shipping'= wrap_labels(S_AviationShipping, 15) ) #
-    
-    over_horizontal_perc <- over1 %>% group_by(asset_type) %>% 
-      mutate(percfinancial_sector = ValueUSD/sum(ValueUSD)) 
-    
-    #ymax<-max(aggregate(over1["ValueUSD"],by=over1["asset_type"],FUN=sum)$ValueUSD)
-    
-    ## version horizontal percentage
-    plot <- ggplot(over_horizontal_perc, aes(x = asset_type, y = percfinancial_sector, fill = financial_sector)) +
-      geom_bar(position = "stack", stat = "identity",width = 0.9) +
-      coord_flip() +
-      scale_fill_manual(name = "", values = c(shipping, pow, trans, material, energy),drop = FALSE) + #
-      #scale_x_discrete(name="Asset Type",drop=F, labels=c(BondsTitle, EquityTitle)) + #
-      scale_y_continuous(name = SectorShare, labels = percent, expand = c(0,0)) +
-      guides(fill = guide_legend(nrow = 2, reverse = TRUE))+
-      theme_barcharts() +
-      theme(plot.title = element_text(),
-            legend.position = "bottom",
-            legend.direction = "horizontal",
-            legend.text=element_text(size=textsize),
-            legend.spacing.y = unit(-22, "pt"),
-            legend.box.margin = unit(c(-5, 40, -10, 10), "pt"),
-            axis.line.x = element_blank(),
-            axis.line.y = element_line(size = 0.5),
-            axis.text.x=element_text(colour=textcolor,size=11),
-            axis.text.y=element_text(colour=textcolor,size=11),
-            axis.title.x = element_text(size = 11, margin = margin(3, 0, 0, 0, "pt")),
-            axis.title.y = element_blank(),
-            panel.grid.major.x = element_line(colour = "#989898", size = 0.2),
-            plot.margin = unit(c(-2, 20, 10, 2), "pt")) +
-      ggtitle("\n")
-    
-  }else{
-    label <- Therearenoclimaterelevantequityorbondholdingsintheportfolios  #
-    
-    plot <- no_chart(label)
-    
-  }
-  
-  ggsave(plot, filename=graph_name(plotnumber,ParameterFile), bg = "white",height=2.3,width=4.5,dpi=ppi)   #linewidth_in*.9
-}
-
-ScopeOfAnalysis <- function(plotnumber){
-  
-  over <- SectorDataAnalysis()
-  
-  Bond_translation <- if (BondReference == "Corporate bond"){
-    paste0(wrap_labels(BondsTitle, 10))            #
-  }else {
-    wrap_labels(Corporate_Bond_1, 10)       ## place for other category!!!
-  }
-  
-  
-  over$asset_type <- gsub("Funds", "Others", over$asset_type) #
-  over$asset_type <- gsub("Bonds", Bond_translation, over$asset_type) #
-  over$asset_type <- gsub("Equity", EquityTitle, over$asset_type)     #
-  over$asset_type <- gsub("Others", OthersTitle, over$asset_type)     #
-  
-  
-  over$Sector.All <- ifelse(over$financial_sector == "Not Included", "Sectors Not in Scope", "Scope of the Analysis")
-  
-  over <- over %>%
-    ungroup() %>% 
-    select(Sector.All,asset_type,valid_value_usd) %>%
-    group_by(Sector.All,asset_type) %>%
-    summarise(valid_value_usd = sum(valid_value_usd))
-  
-  
-  if(data_check(over) == F){
-    over <- over %>% ungroup() %>% add_row(Sector.All = "Power", asset_type =  Bond_translation, valid_value_usd = 0)
-  }
-  
-  over <- over %>%
-    complete(asset_type=c(Bond_translation,EquityTitle,OthersTitle),  #
-             Sector.All = c("Sectors Not in Scope",
-                            #"Other Climate Sectors",
-                            "Scope of the Analysis"), 
-             fill=list(valid_value_usd = 0)) %>%
-    unique()
-  
-  over <- as.data.frame(over)
-  orderofchart <- c(Bond_translation,EquityTitle,OthersTitle) #
-  over$asset_type <- factor(over$asset_type,levels=orderofchart)
-  over$Sector.All <- factor(over$Sector.All, levels=c("Sectors Not in Scope",
-                                                      #"Other Climate Sectors",
-                                                      "Scope of the Analysis"), ordered=TRUE)
-  tot<- over %>%
-    group_by(asset_type) %>%
-    summarise(s=sum(valid_value_usd))
-  
-  # for NEW VERSION horizontal chart
-  over_horizontal_chart <- over %>% filter(asset_type != OthersTitle)
-  
-  annotate.position <- over_horizontal_chart %>% group_by(asset_type) %>% summarize(sumValueUSD = sum(valid_value_usd)) %>% 
-    summarize(maxsumValueUSD = max(sumValueUSD))
-  
-  annotate.label <- over_horizontal_chart %>% filter(Sector.All == "Scope of the Analysis")
-  
-  number_cifer <- nchar(round(annotate.position$maxsumValueUSD, digits = 0))
-  
-  breaks_by <- function(number_cifer){
-    10^(number_cifer-1)
-  }
-  breaks_interval <- breaks_by(number_cifer)
-  
-  plot <- ggplot(over_horizontal_chart, aes(x = fct_rev(asset_type), y=valid_value_usd, fill=Sector.All)) +
-    geom_bar(position="stack", stat="identity", width = 0.9) +
-    coord_flip() +
-    scale_fill_manual(name="", labels=c(SectorsNotinScope,
-                                        # OtherClimateRelevantSectors,
-                                        SectorsinScenarioAnalysis),
-                      values=c("grey80", 
-                               #"#deebf7",
-                               "#265b9b"),drop = FALSE) + #
-    #scale_x_discrete(name="Asset Type", labels = x_labels) +
-    scale_y_continuous(name=MarketValue, labels=comprss, expand=c(0, 0, 0, 0), 
-                       breaks = seq(0, annotate.position$maxsumValueUSD, by = breaks_interval*2)) + #breaks = scales::pretty_breaks(n = 3)) +   #
-    # limits = c(0, annotate.position$maxsumValueUSD+0.3*annotate.position$maxsumValueUSD)) +     #
-    guides(fill=guide_legend(nrow=1, byrow = TRUE, reverse = TRUE))+
-    theme_barcharts() +
-    theme(plot.title = element_text(colour="#265b9b",size=11, hjust = 1),
-          legend.position = "bottom",
-          legend.text=element_text(size=textsize),
-          legend.box.margin = unit(c(-15, 60, -10, 0), "pt"),
-          legend.spacing.y = unit(0, "pt"),
-          axis.line.x = element_blank(),
-          axis.line.y = element_line(size = 0.5),
-          axis.text.x=element_text(colour=textcolor,size=11),
-          axis.text.y=element_text(colour=textcolor,size=11),
-          axis.title.x = element_text(colour=textcolor, size = 11, margin = margin(5, 0, 0, 0, "pt"), hjust = 0.3),
-          axis.title.y = element_blank(),
-          panel.grid.major.x = element_line(colour = "#989898", size = 0.2),
-          plot.margin = unit(c(5, 10, 10, 2), "pt")) +
-    annotate("text", x = annotate.label$asset_type, y = annotate.position$maxsumValueUSD + 0.35*annotate.position$maxsumValueUSD,
-             # label = wrap_labels(paste0(comma(round(annotate.label$valid_value_usd, digits = 0))), 10),
-             label = comprss(annotate.label$valid_value_usd), 
-             family = textfont, colour="#265b9b", hjust = 1) +
-    ggtitle(Climaterelevantsectors)
-  
-  
-  ggsave(plot,filename=graph_name(plotnumber,ParameterFile), bg = "white",height=2.2,width=4.5,dpi=ppi)   #linewidth_in*.9
-  
-}
+# PercentageOfPortfolioAssessed <- function(plotnumber){
+#   
+#   
+#   over <- SectorDataAnalysis()
+#   
+#   over <- over[over$financial_sector != "Not Included",]
+#   #over$financial_sector <- factor(over$financial_sector, levels = c("Fossil Fuels","Power", "Automotive",
+#   #                                                     "Cement & Steel","Aviation & Shipping"), ordered=TRUE)
+#   
+#   over<- as.data.frame(over)
+#   
+#   if (data_check(over)){
+#     
+#     over$financial_sector <- if_else(over$financial_sector == "Cement&Steel","Cement & Steel", over$financial_sector)
+#     over <- over %>%  filter(!is.na(financial_sector)) 
+#     
+#     ## "steelblue" color below should be changed to whatever our Portfolio color is
+#     over1<- subset(over, portfolio_name == portfolio_name_select & asset_type %in% c("Equity","Bonds"))
+#     
+#     over1 <- over1 %>% group_by(investor_name,portfolio_name,asset_type,financial_sector) %>% summarise( ValueUSD = sum(valid_value_usd))
+#     
+#     
+#     over1$asset_type <- gsub("Bonds", BondReference,over1$asset_type)
+#     over1$asset_type <- gsub("Equity", "Equity",over1$asset_type)
+#     over1$asset_type <- factor(over1$asset_type,levels=c("Equity", BondReference)) 
+#     
+#     # if(BondReference == "Corporate bond") {
+#     over1$asset_type <- dplyr::recode(over1$asset_type,  "Bond" = wrap_labels(BondsTitle, 10), Equity = EquityTitle)   #
+#     # } else {
+#     # over1$asset_type <- dplyr::recode(over1$asset_type,  "Other Title" = " ", Equity = EquityTitle)  #
+#     # }
+#     
+#     over1$financial_sector <- factor(over1$financial_sector, levels=c("Aviation & Shipping", "Cement & Steel",
+#                                                                       "Automotive", "Power","Fossil Fuels"), ordered=TRUE) 
+#     over1$financial_sector <- dplyr::recode(over1$financial_sector, 
+#                                             'Fossil Fuels' = wrap_labels(S_FossilFuels, 15), 
+#                                             "Power" = wrap_labels(S_Power, 15), 
+#                                             "Automotive"  = wrap_labels(S_Automotive, 15), #
+#                                             'Cement & Steel' = wrap_labels(S_CementSteel, 15), 
+#                                             'Aviation & Shipping'= wrap_labels(S_AviationShipping, 15) ) #
+#     
+#     over_horizontal_perc <- over1 %>% group_by(asset_type) %>% 
+#       mutate(percfinancial_sector = ValueUSD/sum(ValueUSD)) 
+#     
+#     #ymax<-max(aggregate(over1["ValueUSD"],by=over1["asset_type"],FUN=sum)$ValueUSD)
+#     
+#     ## version horizontal percentage
+#     plot <- ggplot(over_horizontal_perc, aes(x = asset_type, y = percfinancial_sector, fill = financial_sector)) +
+#       geom_bar(position = "stack", stat = "identity",width = 0.9) +
+#       coord_flip() +
+#       scale_fill_manual(name = "", values = c(shipping, pow, trans, material, energy),drop = FALSE) + #
+#       #scale_x_discrete(name="Asset Type",drop=F, labels=c(BondsTitle, EquityTitle)) + #
+#       scale_y_continuous(name = SectorShare, labels = percent, expand = c(0,0)) +
+#       guides(fill = guide_legend(nrow = 2, reverse = TRUE))+
+#       theme_barcharts() +
+#       theme(plot.title = element_text(),
+#             legend.position = "bottom",
+#             legend.direction = "horizontal",
+#             legend.text=element_text(size=textsize),
+#             legend.spacing.y = unit(-22, "pt"),
+#             legend.box.margin = unit(c(-5, 40, -10, 10), "pt"),
+#             axis.line.x = element_blank(),
+#             axis.line.y = element_line(size = 0.5),
+#             axis.text.x=element_text(colour=textcolor,size=11),
+#             axis.text.y=element_text(colour=textcolor,size=11),
+#             axis.title.x = element_text(size = 11, margin = margin(3, 0, 0, 0, "pt")),
+#             axis.title.y = element_blank(),
+#             panel.grid.major.x = element_line(colour = "#989898", size = 0.2),
+#             plot.margin = unit(c(-2, 20, 10, 2), "pt")) +
+#       ggtitle("\n")
+#     
+#   }else{
+#     label <- Therearenoclimaterelevantequityorbondholdingsintheportfolios  #
+#     
+#     plot <- no_chart(label)
+#     
+#   }
+#   
+#   ggsave(plot, filename=graph_name(plotnumber,ParameterFile), bg = "white",height=2.3,width=4.5,dpi=ppi)   #linewidth_in*.9
+# }
+# 
+# # ScopeOfAnalysis <- function(plotnumber){
+# #   
+# #   over <- SectorDataAnalysis()
+# #   
+# #   Bond_translation <- if (BondReference == "Corporate bond"){
+# #     paste0(wrap_labels(BondsTitle, 10))            #
+# #   }else {
+# #     wrap_labels(Corporate_Bond_1, 10)       ## place for other category!!!
+# #   }
+# #   
+# #   
+# #   over$asset_type <- gsub("Funds", "Others", over$asset_type) #
+# #   over$asset_type <- gsub("Bonds", Bond_translation, over$asset_type) #
+# #   over$asset_type <- gsub("Equity", EquityTitle, over$asset_type)     #
+# #   over$asset_type <- gsub("Others", OthersTitle, over$asset_type)     #
+# #   
+# #   
+# #   over$Sector.All <- ifelse(over$financial_sector == "Not Included", "Sectors Not in Scope", "Scope of the Analysis")
+# #   
+# #   over <- over %>%
+# #     ungroup() %>% 
+# #     select(Sector.All,asset_type,valid_value_usd) %>%
+# #     group_by(Sector.All,asset_type) %>%
+# #     summarise(valid_value_usd = sum(valid_value_usd))
+# #   
+# #   
+# #   if(data_check(over) == F){
+# #     over <- over %>% ungroup() %>% add_row(Sector.All = "Power", asset_type =  Bond_translation, valid_value_usd = 0)
+# #   }
+# #   
+# #   over <- over %>%
+# #     complete(asset_type=c(Bond_translation,EquityTitle,OthersTitle),  #
+# #              Sector.All = c("Sectors Not in Scope",
+# #                             #"Other Climate Sectors",
+# #                             "Scope of the Analysis"), 
+# #              fill=list(valid_value_usd = 0)) %>%
+# #     unique()
+# #   
+# #   over <- as.data.frame(over)
+# #   orderofchart <- c(Bond_translation,EquityTitle,OthersTitle) #
+# #   over$asset_type <- factor(over$asset_type,levels=orderofchart)
+# #   over$Sector.All <- factor(over$Sector.All, levels=c("Sectors Not in Scope",
+# #                                                       #"Other Climate Sectors",
+# #                                                       "Scope of the Analysis"), ordered=TRUE)
+# #   tot<- over %>%
+# #     group_by(asset_type) %>%
+# #     summarise(s=sum(valid_value_usd))
+# #   
+# #   # for NEW VERSION horizontal chart
+# #   over_horizontal_chart <- over %>% filter(asset_type != OthersTitle)
+# #   
+# #   annotate.position <- over_horizontal_chart %>% group_by(asset_type) %>% summarize(sumValueUSD = sum(valid_value_usd)) %>% 
+# #     summarize(maxsumValueUSD = max(sumValueUSD))
+# #   
+# #   annotate.label <- over_horizontal_chart %>% filter(Sector.All == "Scope of the Analysis")
+# #   
+# #   number_cifer <- nchar(round(annotate.position$maxsumValueUSD, digits = 0))
+# #   
+# #   breaks_by <- function(number_cifer){
+# #     10^(number_cifer-1)
+# #   }
+# #   breaks_interval <- breaks_by(number_cifer)
+# #   
+# #   plot <- ggplot(over_horizontal_chart, aes(x = fct_rev(asset_type), y=valid_value_usd, fill=Sector.All)) +
+# #     geom_bar(position="stack", stat="identity", width = 0.9) +
+# #     coord_flip() +
+# #     scale_fill_manual(name="", labels=c(SectorsNotinScope,
+# #                                         # OtherClimateRelevantSectors,
+# #                                         SectorsinScenarioAnalysis),
+# #                       values=c("grey80", 
+# #                                #"#deebf7",
+# #                                "#265b9b"),drop = FALSE) + #
+# #     #scale_x_discrete(name="Asset Type", labels = x_labels) +
+# #     scale_y_continuous(name=MarketValue, labels=comprss, expand=c(0, 0, 0, 0), 
+# #                        breaks = seq(0, annotate.position$maxsumValueUSD, by = breaks_interval*2)) + #breaks = scales::pretty_breaks(n = 3)) +   #
+# #     # limits = c(0, annotate.position$maxsumValueUSD+0.3*annotate.position$maxsumValueUSD)) +     #
+# #     guides(fill=guide_legend(nrow=1, byrow = TRUE, reverse = TRUE))+
+# #     theme_barcharts() +
+# #     theme(plot.title = element_text(colour="#265b9b",size=11, hjust = 1),
+# #           legend.position = "bottom",
+# #           legend.text=element_text(size=textsize),
+# #           legend.box.margin = unit(c(-15, 60, -10, 0), "pt"),
+# #           legend.spacing.y = unit(0, "pt"),
+# #           axis.line.x = element_blank(),
+# #           axis.line.y = element_line(size = 0.5),
+# #           axis.text.x=element_text(colour=textcolor,size=11),
+# #           axis.text.y=element_text(colour=textcolor,size=11),
+# #           axis.title.x = element_text(colour=textcolor, size = 11, margin = margin(5, 0, 0, 0, "pt"), hjust = 0.3),
+# #           axis.title.y = element_blank(),
+# #           panel.grid.major.x = element_line(colour = "#989898", size = 0.2),
+# #           plot.margin = unit(c(5, 10, 10, 2), "pt")) +
+# #     annotate("text", x = annotate.label$asset_type, y = annotate.position$maxsumValueUSD + 0.35*annotate.position$maxsumValueUSD,
+# #              # label = wrap_labels(paste0(comma(round(annotate.label$valid_value_usd, digits = 0))), 10),
+# #              label = comprss(annotate.label$valid_value_usd), 
+# #              family = textfont, colour="#265b9b", hjust = 1) +
+# #     ggtitle(Climaterelevantsectors)
+# #   
+# #   
+# #   ggsave(plot,filename=graph_name(plotnumber,ParameterFile), bg = "white",height=2.2,width=4.5,dpi=ppi)   #linewidth_in*.9
+# #   
+# # }
 
 

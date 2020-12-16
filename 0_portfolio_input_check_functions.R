@@ -10,7 +10,7 @@ read_raw_portfolio_file <- function(project_name){
   txt_to_read = list.files(path = input_path, pattern=paste0(project_name,"_Input.txt"))
   
   
-  if (length(csv_to_read) == 1){portfolio <- read_csv(paste0(input_path,csv_to_read))}
+  if (length(csv_to_read) == 1){portfolio <- readr::read_csv(paste0(input_path,csv_to_read))}
   if (length(txt_to_read) == 1){
     enc <- guess_encoding(paste0(input_path,txt_to_read))$encoding[1]
     portfolio <- read.table(paste0(input_path,txt_to_read),sep = ",", header = T, fileEncoding = enc)
@@ -847,7 +847,10 @@ get_and_clean_fund_data <- function(){
   
   fund_data <- NA
   # Fund Data
-  if(file.exists(paste0(analysis_inputs_path,"fund_data_",financial_timestamp,".rda"))){
+  if(file.exists(paste0(analysis_inputs_path,"liechtenstein_fund_file_1611.rds"))){
+    fund_data <- readRDS(paste0(analysis_inputs_path,"liechtenstein_fund_file_1611.rds"))
+    print("Using foltered fund data for meta portfolio.")
+  } else if(file.exists(paste0(analysis_inputs_path,"fund_data_",financial_timestamp,".rda"))){
     fund_data <- readRDS(paste0(analysis_inputs_path,"fund_data_",financial_timestamp,".rda"))
   } else if(file.exists(paste0(analysis_inputs_path,"fund_data_",financial_timestamp,".rds"))){
     fund_data <- readRDS(paste0(analysis_inputs_path,"fund_data_",financial_timestamp,".rds"))
